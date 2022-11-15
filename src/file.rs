@@ -12,8 +12,6 @@ pub fn modify_source(
     actions: &Actions,
     environ: &Environ,
 ) -> Result<()> {
-    dbg!(actions);
-    dbg!(environ);
     let f = BufReader::new(File::open(path)?);
     let mut fannotated = File::create(annotated)?;
     writeln!(fannotated, "/* --- BEGIN Variable Definitions ---")?;

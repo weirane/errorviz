@@ -43,13 +43,11 @@ fn diagnostics_502(diag: &Diagnostic) -> Result<(Actions, Environ)> {
     let mut act: BTreeMap<usize, Vec<String>> = BTreeMap::new();
     let mut env = HashMap::new();
 
-    dbg!(&imm_borrow.text[0]);
     let imm_borrow_text = &imm_borrow.text[0];
     let ast: Stmt = syn::parse_str(&imm_borrow_text.text).context("can't parse first borrow")?;
     let user = match ast {
         Stmt::Local(loc) => {
             if let Pat::Ident(id) = loc.pat {
-                dbg!(&id.ident);
                 id.ident.to_string()
             } else {
                 todo!("pattern in let");
