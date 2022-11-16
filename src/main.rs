@@ -32,6 +32,7 @@ fn main() -> Result<()> {
 
     let mut actions: BTreeMap<usize, Vec<String>> = BTreeMap::new();
     let mut environ = HashMap::new();
+    environ.insert(String::from("f()"), "Function");
     for line in stderr.lines() {
         let diag: Diagnostic = serde_json::from_str(line)?;
         if diag.level == DiagnosticLevel::Error {
