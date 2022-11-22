@@ -2,9 +2,11 @@ mod diagnostics;
 mod file;
 
 use std::collections::{BTreeMap, HashMap};
+use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use cargo_metadata::diagnostic::*;
 
 use crate::diagnostics::diagnostics;
@@ -21,12 +23,10 @@ pub type Environ = HashMap<String, &'static str>;
 
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
-    let path = &args[1];
-    let annotated = &args[2];
-    let escaped = &args[3];
+    let source = &args[1];
 
     let output = Command::new("rustc")
-        .args(["--error-format=json", path])
+        .args(["--error-format=json", source])
         .output()?;
     let stderr = String::from_utf8(output.stderr)?;
 
@@ -51,7 +51,31 @@ fn main() -> Result<()> {
             }
         }
     }
-    modify_source(path, annotated, &actions, &environ)?;
-    escape_source(path, escaped)?;
+
+    let output_svg_path = &args[2];
+    // --- rustviz related ---
+    let rustviz_path = PathBuf::from(&args[3]);
+    if !rustviz_path.exists() {
+        anyhow::bail!("rustviz path does not exist");
+    }
+    let examples = rustviz_path.join("src/examples/ERRORVIZ");
+    if examples.exists() {
+        fs::remove_dir_all(&examples).context("cannot rm examples")?;
+    }
+    fs::create_dir_all(&examples.join("input")).context("failed to mkdir")?;
+    let annotated = examples.join("main.rs");
+    let escaped = examples.join("input/annotated_source.rs");
+    modify_source(source, &annotated, &actions, &environ).context("failed to add annotations")?;
+    escape_source(source, &escaped).context("failed to generate escaped source")?;
+    fs::copy(&annotated, examples.join("source.rs")).context("cannot copy to source.rs")?;
+    let o = Command::new("rustviz")
+        .arg("ERRORVIZ")
+        .current_dir(rustviz_path.join("src"))
+        .output()?;
+    println!("{}", String::from_utf8_lossy(&o.stdout));
+    println!("{}", String::from_utf8_lossy(&o.stderr));
+    let rustviz_svg = examples.join("vis_timeline.svg");
+    // --- rustviz related ---
+    fs::copy(rustviz_svg, output_svg_path).context("failed to copy to destination")?;
     Ok(())
 }

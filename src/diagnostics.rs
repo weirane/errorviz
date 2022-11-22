@@ -10,7 +10,7 @@ pub fn diagnostics(diag: &Diagnostic, code: &str) -> Result<(Actions, Environ)> 
     match code {
         "E0502" => diagnostics_502(diag),
         "E0503" => diagnostics_503(diag),
-        _ => unimplemented!("code {}", code),
+        _ => anyhow::bail!("Unsupported error code {}", code),
     }
 }
 
