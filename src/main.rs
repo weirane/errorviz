@@ -24,6 +24,7 @@ pub type Environ = HashMap<String, &'static str>;
 
 #[derive(Debug, Serialize)]
 struct Output {
+    success: bool,
     svgs: Vec<Item>,
 }
 
@@ -34,8 +35,8 @@ struct Item {
 }
 
 impl Output {
-    fn empty() -> Self {
-        Self { svgs: vec![] }
+    fn new(success: bool, svgs: Vec<Item>) -> Self {
+        Self { success, svgs }
     }
 }
 
@@ -54,7 +55,7 @@ fn main() -> Result<()> {
         .output()?;
     let stderr = String::from_utf8(output.stderr)?;
 
-    let mut results = Output::empty();
+    let mut svgs = vec![];
     for line in stderr.lines() {
         let mut actions: BTreeMap<usize, Vec<String>> = BTreeMap::new();
         let mut environ = HashMap::new();
@@ -75,11 +76,12 @@ fn main() -> Result<()> {
                 }
                 if let Some(&lineno) = actions.keys().min() {
                     let svg = run_rustviz(source, &actions, &environ, &args[2])?;
-                    results.svgs.push(Item::new(lineno, svg));
+                    svgs.push(Item::new(lineno, svg));
                 }
             }
         }
     }
+    let results = Output::new(true, svgs);
     let s = serde_json::to_string(&results).context("failed to serialize result")?;
     println!("{}", s);
 
